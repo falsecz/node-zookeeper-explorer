@@ -15,13 +15,13 @@ var notifications = [];
 var navigateQueue = [];
 
 $(function() {
-	
+
 	$.getJSON("/isLoggedIn", function(data) {
 		if ( data.status == true ) {
 			$("#btnAuth").addClass("active");
 		}
 	});
-	
+
 	socket = io.connect(location.protocol+"//"+location.hostname+(location.port=="")?"":":"+location.port);
 	socket.on("watcher_children", function(data) {
 		if ( data.session == currentSession && data.connection == currentConnection ) {
@@ -51,9 +51,9 @@ $(function() {
 		$("#btnDisconnect").trigger("click");
 		setTimeout(function() { displayError("Server has closed the connection.") }, 100);
 	});
-	
+
 	getConnectionHistory();
-	
+
 	$("#btnConnect").click(function() {
 		var hosts = $("#zkhost").val().split(",");
 		hosts.forEach(function(host, i) {
@@ -64,20 +64,20 @@ $(function() {
 		$("#zkhost").val(hosts.join(","));
 		$.post("/zk/connect", { zkhost: $("#zkhost").val() }, function (data) {
 			if ( data.status == "ok" ) {
-				
+
 				currentSession = data.session;
 				currentConnection = data.connection;
-				
+
 				setConnectionHistory($("#zkhost").val());
-				
+
 				displaySuccess("Successfully connected to Zookeeper: " + $("#zkhost").val() + ".");
 				$("#connectform").hide();
 				$("#connectedform").show();
 				$(".hero-unit").hide();
 				$(".treecontainer").show();
-				
+
 				constructNewTree();
-				
+
 			} else {
 				displayError(data.error);
 			}
@@ -107,7 +107,7 @@ $(function() {
 						}
 					});
 				}
-				
+
 			} else {
 				displayError("Path " + $("#navigate").val() + " does not exist.")
 			}
@@ -127,7 +127,7 @@ $(function() {
 		updateNotSeenCounter();
 	});
 	$("#btnDeleteSafe").click(function() {
-		
+
 		if ( treeSelectedNodes.length == 0 ) {
 			if ( treeSelectedNode == null ) {
 				displayError("No active node. Nothing to delete.");
@@ -239,11 +239,11 @@ $(function() {
 			loadNodeStatsAndData(treeSelectedNode);
 		}
 	});
-	
+
 	$("#btnCreate").click(function() {
 		displayNewNodeForm();
 	});
-	
+
 	$("#btnEditData").click(function() {
 		if ( treeSelectedNode == null ) {
 			displayError("No node selected, no data to modify.")
@@ -253,7 +253,7 @@ $(function() {
 			});
 		}
 	});
-	
+
 	$("#btnWatch").click(function() {
 		if ( $(this).hasClass("active") ) {
 			$(this).removeClass("active");
@@ -263,7 +263,7 @@ $(function() {
 			watcherRegister( getPathFromRoot( (treeSelectedNode == null ? $("#tree").dynatree('getRoot') : treeSelectedNode ) ) );
 		}
 	});
-	
+
 	$("#btnAuth").click(function() {
 		if ( $(this).hasClass("active") ) {
 			$(this).removeClass("active");
@@ -274,7 +274,7 @@ $(function() {
 			displayLoginForm();
 		}
 	});
-	
+
 	$("#notifications").poshytip({
 		className: 'tip-twitter',
 		bgImageFrameSize: 11,
@@ -343,7 +343,7 @@ function displayUnsafeDeleteConfirmation() {
 		+ "<button id='btnUnsafeDeleteCancel' class='btn' type='button'>Cancel</button>"
 		+ "</div>");
 	$("#btnUnsafeDeleteConfirm").click(function() {
-		
+
 		if ( treeSelectedNodes.length == 0 ) {
 			deleteUnsafe( getPathFromRoot( treeSelectedNode ), function(data) {
 				if ( data.error == "no_auth" ) {
@@ -387,7 +387,7 @@ function displayUnsafeDeleteConfirmation() {
 				});
 			});
 		}
-		
+
 	});
 	$("#btnUnsafeDeleteCancel").click(function() {
 		$(".unsafe-confirm").remove();
@@ -421,7 +421,7 @@ function displayLoginForm() {
 			}
 		});
 	}, 100);
-	
+
 	$("#btnLogin").click(function() {
 		if ($("#username").val() == "" || $("#password").val() == "") {
 			displayError("Credentials required.");
@@ -461,7 +461,7 @@ function displayNewNodeForm() {
 			}
 		});
 	}, 100);
-	
+
 	$("#btnNewNodeCreate").click(function() {
 		if ($("#newNodeName").val() == "") {
 			displayError("Node name can't be empty.");
@@ -492,10 +492,16 @@ function displayDataModificationForm(currentData, currentVersion) {
 		+ "<h4>Edit node data</h4>"
 		+ "Modify the data for node " + getPathFromRoot( treeSelectedNode ) + "<br/>"
 		+ "<input type='hidden' id='nodeVersion' value='" + currentVersion + "' />"
-		+ "New data: <input type='text' id='nodeData' placeholder='" + ((currentData=="") ? "<no data>" : currentData ) + "' /><br/>"
+    // + "New data: <input type='text' id='nodeData' placeholder='" + ((currentData=="") ? "<no data>" : currentData ) + "' /><br/>"
+		+ "New data: <textarea id='nodeData' rows=20 style='width:1000px'/></textarea><br/>"
+
 		+ "<button id='btnUpdateDataConfirm' class='btn btn-primary' type='button'>Update data</button> "
 		+ "<button id='btnUpdateDataCancel' class='btn' type='button'>Cancel</button>"
 		+ "</div>");
+
+    $("#main").find('textarea').val((currentData=="") ? "<no data>" : currentData );
+
+
 	setTimeout(function() {
 		$("#nodeData").focus();
 		$("#nodeData").keydown(function(event) {
@@ -507,7 +513,7 @@ function displayDataModificationForm(currentData, currentVersion) {
 			}
 		});
 	}, 100);
-	
+
 	$("#btnUpdateDataConfirm").click(function() {
 		set(getPathFromRoot( treeSelectedNode ), $("#nodeData").val(), $("#nodeVersion").val(), function(data) {
 			if ( data.status == "ok" ) {
@@ -522,7 +528,7 @@ function displayDataModificationForm(currentData, currentVersion) {
 			}
 		});
 	});
-	
+
 	$("#btnUpdateDataCancel").click(function() {
 		$(".data-modification").remove();
 	});
@@ -534,7 +540,7 @@ function constructNewTree() {
 		data.children.forEach(function(item) {
 			nodes.push({ title: item, isFolder: true, children: [ { title: "loading...", hideCheckbox: true } ] });
 		})
-		
+
 		$("#tree").dynatree({
 			children: nodes
 			, checkbox: true
@@ -552,7 +558,7 @@ function constructNewTree() {
 						result.children.forEach(function(child) {
 							node.addChild({ isFolder: true, title: child, children: [ { title: "loading...", hideCheckbox: true } ] });
 						});
-						
+
 						if ( navigateQueue.length > 0 ) {
 							var item = navigateQueue.shift();
 							console.log(item);
@@ -573,7 +579,7 @@ function constructNewTree() {
 				loadNodeStatsAndData(node);
 			}
 		});
-		
+
 	});
 }
 
@@ -585,20 +591,22 @@ function loadNodeStatsAndData(node) {
 	treeSelectedNode = node;
 	var path = getPathFromRoot( node );
 	get(path, function(data) {
-		
+
 		watcherExists(data.path, function(result) {
 			if ( result.status == "ok" ) {
 				$("#btnWatch").addClass("active");
 			}
 		});
-		
+
 		$("#node").empty();
 		$("#node").append("<p>Node:<br/><strong>" + data.path + "</strong></p>");
 		$("#node").append("<form class='form-horizontal' id='stats'></form>")
 		for ( var key in data.stat ) {
 			$("#stats").append("<div class='control-group'><label class='control-label' for='" + key + "'>" + key + "</label><div class='controls'><span>" + data.stat[key] + "</span></div></div>");
 		}
-		$("#node").append("<p>Data for this node:<br/><strong>" + (data.data == "" ? "&lt;no data&gt;" : data.data) + "</strong></p>");
+		$("#node").append("<p>Data for this node:<br/><strong>" + "</strong></p>");
+    $("#node").find('strong').text(data.data == "" ? "&lt;no data&gt;" : data.data);
+
 	});
 }
 
